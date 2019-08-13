@@ -399,17 +399,21 @@ public abstract class AbstractQueuedSynchronizer
          */
         static final int CANCELLED =  1;
         /** waitStatus value to indicate successor's thread needs unparking
-         * 节点状态位SIGNAL标识，其后继节点需要被唤醒
+         * 节点状态位SIGNAL标识，其后继节点需要被唤醒，
+         * 当前节点释放锁的时候将会主动唤醒(unPark，可见{@link #release(int)}中调用的{@link #unparkSuccessor(Node)})后继节点
          */
         static final int SIGNAL    = -1;
         /**
          * waitStatus value to indicate thread is waiting on condition
          * 标识线程处在某条件「condition」下的等待状态，或者说在某「condition」的等待队列中
+         * 当其他线程调用了Condition的signal()方法后，CONDITION状态的结点将从等待队列转移到同步队列中，等待获取同步锁。
          */
         static final int CONDITION = -2;
         /**
          * waitStatus value to indicate the next acquireShared should
          * unconditionally propagate
+         *
+         * 与共享模式相关，在共享模式中，该状态标识结点的线程处于可运行状态
          */
         static final int PROPAGATE = -3;
 
@@ -454,7 +458,8 @@ public abstract class AbstractQueuedSynchronizer
          * values, just for sign.
          * 以数字取值是为了简化使用。
          * 非负值表示节点不需要发出信号。
-         * 因此，大多数代码不需要检查特定的值，只需要检查正负号。
+         * waitStatus>0表示取消状态，而waitStatus<0表示有效状态.
+         * 因此，大多数情况下不需要检查特定的值，只需要检查正负号。
          *
          *
          * The field is initialized to 0 for normal sync nodes, and
