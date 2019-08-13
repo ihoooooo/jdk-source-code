@@ -377,17 +377,35 @@ public abstract class AbstractQueuedSynchronizer
      * expert group, for helpful ideas, discussions, and critiques
      * on the design of this class.
      */
+    /**
+     * 每个「Node」节点即为一个线程
+     */
     static final class Node {
-        /** Marker to indicate a node is waiting in shared mode */
+        /**
+         * Marker to indicate a node is waiting in shared mode
+         * 共享模式
+         */
         static final Node SHARED = new Node();
-        /** Marker to indicate a node is waiting in exclusive mode */
+        /**
+         * Marker to indicate a node is waiting in exclusive mode
+         * 独占模式
+         * exclusive 美 [ɪk'sklusɪv]
+         */
         static final Node EXCLUSIVE = null;
 
-        /** waitStatus value to indicate thread has cancelled */
+        /**
+         * waitStatus value to indicate thread has cancelled
+         * 表示线程节点已被取消
+         */
         static final int CANCELLED =  1;
-        /** waitStatus value to indicate successor's thread needs unparking */
+        /** waitStatus value to indicate successor's thread needs unparking
+         * 节点状态位SIGNAL标识，其后继节点需要被唤醒
+         */
         static final int SIGNAL    = -1;
-        /** waitStatus value to indicate thread is waiting on condition */
+        /**
+         * waitStatus value to indicate thread is waiting on condition
+         * 标识线程处在某条件「condition」下的等待状态，或者说在某「condition」的等待队列中
+         */
         static final int CONDITION = -2;
         /**
          * waitStatus value to indicate the next acquireShared should
@@ -404,15 +422,25 @@ public abstract class AbstractQueuedSynchronizer
          *               first indicate they need a signal,
          *               then retry the atomic acquire, and then,
          *               on failure, block.
+         *   此节点的后继节点已经(或将很快)被阻塞(通过park),因此，当前节点在被释放或者取消时必须「unpark」它的后继节点。
+         *   为了避免竞争，// todo 巴拉巴拉，英文蹩脚技术还菜，翻译不出来了，待补充
+         *
+         *
          *   CANCELLED:  This node is cancelled due to timeout or interrupt.
          *               Nodes never leave this state. In particular,
          *               a thread with cancelled node never again blocks.
+         *   由于超时或中断，此节点被取消。节点的这个状态是不可逆的（终态，生命周期到此结束）。
+         *   需要声明的是，如果一个线程对应的节点处于「CANCELLED」状态，它将无法再次回到阻塞状态。
+         *
          *   CONDITION:  This node is currently on a condition queue.
          *               It will not be used as a sync queue node
          *               until transferred, at which time the status
          *               will be set to 0. (Use of this value here has
          *               nothing to do with the other uses of the
          *               field, but simplifies mechanics.)
+         *  此节点当前处于条件队列中。
+         *
+         *
          *   PROPAGATE:  A releaseShared should be propagated to other
          *               nodes. This is set (for head node only) in
          *               doReleaseShared to ensure propagation
@@ -424,10 +452,16 @@ public abstract class AbstractQueuedSynchronizer
          * Non-negative values mean that a node doesn't need to
          * signal. So, most code doesn't need to check for particular
          * values, just for sign.
+         * 以数字取值是为了简化使用。
+         * 非负值表示节点不需要发出信号。
+         * 因此，大多数代码不需要检查特定的值，只需要检查正负号。
+         *
          *
          * The field is initialized to 0 for normal sync nodes, and
          * CONDITION for condition nodes.  It is modified using CAS
          * (or when possible, unconditional volatile writes).
+         * 对于正常的同步节点，该字段初始化为0，对于条件节点，该字段初始化为CONDITION。
+         * 它使用CAS（或者volatile）进行修改。
          */
         volatile int waitStatus;
 
@@ -518,17 +552,25 @@ public abstract class AbstractQueuedSynchronizer
      * initialization, it is modified only via method setHead.  Note:
      * If head exists, its waitStatus is guaranteed not to be
      * CANCELLED.
+     *
+     * 等待队列的头节点，延迟初始化。除了初始化之外，它只通过setHead方法进行修改。
+     * 注意:如果head存在，则保证它的等待状态不会为「CANCELLED」。
      */
     private transient volatile Node head;
 
     /**
      * Tail of the wait queue, lazily initialized.  Modified only via
      * method enq to add new wait node.
+     *
+     * 等待队列的尾节点，延迟初始化。仅通过方法enq修改以添加新的等待节点
      */
     private transient volatile Node tail;
 
     /**
      * The synchronization state.
+     *
+     * 同步状态
+     * TODO 补充其作用
      */
     private volatile int state;
 
@@ -583,6 +625,7 @@ public abstract class AbstractQueuedSynchronizer
     private Node enq(final Node node) {
         for (;;) {
             Node t = tail;
+            // 尾结点为null则需进行初始化
             if (t == null) { // Must initialize
                 if (compareAndSetHead(new Node()))
                     tail = head;
@@ -605,6 +648,7 @@ public abstract class AbstractQueuedSynchronizer
     private Node addWaiter(Node mode) {
         Node node = new Node(Thread.currentThread(), mode);
         // Try the fast path of enq; backup to full enq on failure
+        // 尝试以下方式快速入队，若失败则用 enq(node)
         Node pred = tail;
         if (pred != null) {
             node.prev = pred;
@@ -632,6 +676,7 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * Wakes up node's successor, if one exists.
+     * 唤醒节点的后继节点
      *
      * @param node the node
      */
@@ -652,8 +697,11 @@ public abstract class AbstractQueuedSynchronizer
          * non-cancelled successor.
          */
         Node s = node.next;
+        // node」的下一个节点为null或者为「取消/CANCELLED=1」状态，无效节点
         if (s == null || s.waitStatus > 0) {
             s = null;
+            // todo 此时为什么要从尾节点往前找？ 有人说是「因为锁已经释放，所以从尾节点开始找可以避免因为高并发下复杂的队列动态变化带来的逻辑判断」
+            // todo 会不会造成节点的丢失？
             for (Node t = tail; t != null && t != node; t = t.prev)
                 if (t.waitStatus <= 0)
                     s = t;
@@ -684,14 +732,19 @@ public abstract class AbstractQueuedSynchronizer
             if (h != null && h != tail) {
                 int ws = h.waitStatus;
                 if (ws == Node.SIGNAL) {
+                    // 将头节点状态改为0，表示已通知，若修改失败则再次循环
                     if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
                         continue;            // loop to recheck cases
+                    // 唤醒后继节点
                     unparkSuccessor(h);
                 }
+                // 若已经通知后继节点，则改为「PROPAGATE」传播
+                /** {@link #shouldParkAfterFailedAcquire}内会将「PROPAGATE」置为「SIGNAL」 */
                 else if (ws == 0 &&
                          !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
                     continue;                // loop on failed CAS
             }
+            // loop，循环，如果头节点发生了改变则再次循环
             if (h == head)                   // loop if head changed
                 break;
         }
@@ -704,9 +757,12 @@ public abstract class AbstractQueuedSynchronizer
      *
      * @param node the node
      * @param propagate the return value from a tryAcquireShared
+     *
+     * Propagate 传播  ['prɑpə'get]
      */
     private void setHeadAndPropagate(Node node, int propagate) {
         Node h = head; // Record old head for check below
+        // 当前节点置位头结点
         setHead(node);
         /*
          * Try to signal next queued node if:
@@ -724,9 +780,12 @@ public abstract class AbstractQueuedSynchronizer
          * racing acquires/releases, so most need signals now or soon
          * anyway.
          */
+        // propagate > 0 说明还有剩余的资源可供获取
+        // todo 这个if内的条件为何是这样的 ？
         if (propagate > 0 || h == null || h.waitStatus < 0 ||
             (h = head) == null || h.waitStatus < 0) {
             Node s = node.next;
+            // 下一个节点为有效节点或者为共享模式
             if (s == null || s.isShared())
                 doReleaseShared();
         }
@@ -794,6 +853,7 @@ public abstract class AbstractQueuedSynchronizer
      */
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         int ws = pred.waitStatus;
+        // 如果前驱节点的状态已经是signal，代表前驱释放是会通知唤醒当前节点，那么此node可以安心被park
         if (ws == Node.SIGNAL)
             /*
              * This node has already set status asking a release
@@ -805,6 +865,9 @@ public abstract class AbstractQueuedSynchronizer
              * Predecessor was cancelled. Skip over predecessors and
              * indicate retry.
              */
+            // 「node」的前置节点「pred」处于被取消状态，继续往前找，将当前节点「node」与找到的第一个非取消状态的节点连接起来，
+            // 这种情况下该方法返回「false」，即不需要「park」，会在「acquireQueued」中继续自旋尝试获取资源，
+            // 因为其前驱节点已经变更，有可能前驱节点已经变为head节点
             do {
                 node.prev = pred = pred.prev;
             } while (pred.waitStatus > 0);
@@ -815,6 +878,7 @@ public abstract class AbstractQueuedSynchronizer
              * need a signal, but don't park yet.  Caller will need to
              * retry to make sure it cannot acquire before parking.
              */
+            // 前驱节点没有被取消，告诉前驱节点释放的时候通知自己
             compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
         }
         return false;
@@ -833,7 +897,9 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if interrupted
      */
     private final boolean parkAndCheckInterrupt() {
+        /** 该方法会使线程进入「wait」状态，见{@link Thread.State.WAITING} */
         LockSupport.park(this);
+        // 返回当前线程的中断状态
         return Thread.interrupted();
     }
 
@@ -860,10 +926,17 @@ public abstract class AbstractQueuedSynchronizer
             boolean interrupted = false;
             for (;;) {
                 final Node p = node.predecessor();
+                // 线程获取到资源后会被置为头结点并释放掉，
+                // 上一个节点为头节点，说明是头结点所代表的线程（即被释放的那个线程）已经用完资源或者即将用完资源，
+                // 当前节点为第二个节点，
+                // 会去尝试获取资源，若能够获取到资源则进入「if」内逻辑
                 if (p == head && tryAcquire(arg)) {
+                    // 会将当前「node」节点的「thread」属性置为「null」
                     setHead(node);
+                    // 通过「setHead(node)」中的「node.prev = null;」以及「p.next=null」将之前的头节点从队列中彻底剥离，以便下次GC回收
                     p.next = null; // help GC
                     failed = false;
+                    // 在被中断标记后不立刻停止自旋 直到获取到资源后才停止自旋
                     return interrupted;
                 }
                 if (shouldParkAfterFailedAcquire(p, node) &&
@@ -943,6 +1016,7 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * Acquires in shared uninterruptible mode.
+     * 以共享不可中断模式获取。
      * @param arg the acquire argument
      */
     private void doAcquireShared(int arg) {
@@ -952,8 +1026,10 @@ public abstract class AbstractQueuedSynchronizer
             boolean interrupted = false;
             for (;;) {
                 final Node p = node.predecessor();
+                // 前驱节点为头节点才能继续尝试
                 if (p == head) {
                     int r = tryAcquireShared(arg);
+                    // 成功获取到资源
                     if (r >= 0) {
                         setHeadAndPropagate(node, r);
                         p.next = null; // help GC
@@ -1133,6 +1209,11 @@ public abstract class AbstractQueuedSynchronizer
      *         thrown in a consistent fashion for synchronization to work
      *         correctly.
      * @throws UnsupportedOperationException if shared mode is not supported
+     *
+     *
+     * 负值代表获取失败；
+     * 0代表获取成功，但没有剩余资源；
+     * 正数表示获取成功，还有剩余资源，其他线程还可以去获取
      */
     protected int tryAcquireShared(int arg) {
         throw new UnsupportedOperationException();
@@ -1213,6 +1294,8 @@ public abstract class AbstractQueuedSynchronizer
      *        {@link #tryAcquire} but is otherwise uninterpreted and
      *        can represent anything you like.
      * @throws InterruptedException if the current thread is interrupted
+     *
+     * 响应中断，如果执行过程中当前线程被中断，则本方法会抛出「InterruptedException」
      */
     public final void acquireInterruptibly(int arg)
             throws InterruptedException {
@@ -1258,9 +1341,13 @@ public abstract class AbstractQueuedSynchronizer
      * @return the value returned from {@link #tryRelease}
      */
     public final boolean release(int arg) {
+        // todo 如果「tryRelease」失败的话，那岂不是「release」也失败了  ？
+        // 「lock」进行「unLock」的时候岂不是也失败了，例如「ReentrantLock」中「unLock」只是「sync.release(1)」
         if (tryRelease(arg)) {
             Node h = head;
+            // 线程队列初始化了则「h」不会为null，其「waitStatus」也不能为0，具体看「waitStatus」中对于0的含义
             if (h != null && h.waitStatus != 0)
+                // 唤醒后续节点
                 unparkSuccessor(h);
             return true;
         }
@@ -1273,6 +1360,9 @@ public abstract class AbstractQueuedSynchronizer
      * returning on success.  Otherwise the thread is queued, possibly
      * repeatedly blocking and unblocking, invoking {@link
      * #tryAcquireShared} until success.
+     *
+     * 以共享模式获取，忽略中断。首先调用至少一次{@link # tryacquiremred}，成功后返回。
+     * 否则，线程将排队，可能反复阻塞和解除阻塞，调用{@link # tryacquiremred}直到成功。
      *
      * @param arg the acquire argument.  This value is conveyed to
      *        {@link #tryAcquireShared} but is otherwise uninterpreted

@@ -1750,6 +1750,9 @@ class Thread implements Runnable {
          * state is executing in the Java virtual machine but it may
          * be waiting for other resources from the operating system
          * such as processor.
+         *
+         * 可运行状态。
+         * 该状态线程正在Java虚拟机中执行，但它可能正在等待操作系统中的其他资源，比如处理器
          */
         RUNNABLE,
 
@@ -1759,6 +1762,10 @@ class Thread implements Runnable {
          * to enter a synchronized block/method or
          * reenter a synchronized block/method after calling
          * {@link Object#wait() Object.wait}.
+         *
+         * 等待监视器锁的阻塞等待状态。
+         * 处于阻塞状态的线程，其正在等待持有监视器锁从而进入到同步代码块/同步方法，
+         * 或者是在调用了{@link Object#wait() Object.wait}方法后等候再次进入到同步代码块/同步方法。
          */
         BLOCKED,
 
