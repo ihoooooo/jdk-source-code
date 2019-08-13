@@ -285,6 +285,10 @@ import sun.misc.Unsafe;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * 注释参考：
+ * https://www.cnblogs.com/waterystone/p/4920797.html
+ * https://segmentfault.com/a/1190000013160598
  */
 public abstract class AbstractQueuedSynchronizer
     extends AbstractOwnableSynchronizer
@@ -1569,6 +1573,9 @@ public abstract class AbstractQueuedSynchronizer
      * Queries whether any threads have been waiting to acquire longer
      * than the current thread.
      *
+     * 查询是否有任何线程等待获取的时间超过当前线程。
+     * 也就是说在当前线程所在节点前是否有其他节点。
+     *
      * <p>An invocation of this method is equivalent to (but may be
      * more efficient than):
      *  <pre> {@code
@@ -1617,6 +1624,10 @@ public abstract class AbstractQueuedSynchronizer
         Node s;
         return h != t &&
             ((s = h.next) == null || s.thread != Thread.currentThread());
+        // 该方法为判断当前线程所在节点前面是否还有其他节点，
+        // 第二个判断条件，((s = h.next) != null && s.thread == Thread.currentThread())，
+        // 没有任何线程等待获取的时间超过当前线程，即当前线程就是除了head节点外最靠前的节点
+        // a&&b 的取反为 !a || !b
     }
 
 

@@ -130,6 +130,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             final Thread current = Thread.currentThread();
             int c = getState();
             if (c == 0) {
+                // 非公平锁，只要「state」为零，说明锁为空闲转态，当前线程就可以进行抢占，即「compareAndSetState(0, acquires)」,
+                // 返回true即state值设置成功，即抢占锁成功
                 if (compareAndSetState(0, acquires)) {
                     setExclusiveOwnerThread(current);
                     return true;
@@ -150,6 +152,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             if (Thread.currentThread() != getExclusiveOwnerThread())
                 throw new IllegalMonitorStateException();
             boolean free = false;
+            // 重入锁，只有「c」为0，才说明锁完全释放，否则可能是重复持有，未释放彻底
             if (c == 0) {
                 free = true;
                 setExclusiveOwnerThread(null);
@@ -232,6 +235,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             final Thread current = Thread.currentThread();
             int c = getState();
             if (c == 0) {
+                // !hasQueuedPredecessors()为「true」说明当前线程是排在head节点后的第一个节点
                 if (!hasQueuedPredecessors() &&
                     compareAndSetState(0, acquires)) {
                     setExclusiveOwnerThread(current);
