@@ -630,8 +630,9 @@ public abstract class AbstractQueuedSynchronizer
     private Node enq(final Node node) {
         for (;;) {
             Node t = tail;
-            // 尾结点为null则需进行初始化
+            // 尾结点为null，说明队列为空，则需进行初始化
             if (t == null) { // Must initialize
+                // 创建一个空节点，并将收尾均指向该空节点
                 if (compareAndSetHead(new Node()))
                     tail = head;
             } else {
@@ -883,7 +884,7 @@ public abstract class AbstractQueuedSynchronizer
              * need a signal, but don't park yet.  Caller will need to
              * retry to make sure it cannot acquire before parking.
              */
-            // 前驱节点没有被取消，告诉前驱节点释放的时候通知自己
+            // 前驱节点没有被取消，将前驱的状态设置成SIGNAL，以便前驱节点释放的时候通知自己
             compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
         }
         return false;
@@ -932,7 +933,7 @@ public abstract class AbstractQueuedSynchronizer
             for (;;) {
                 final Node p = node.predecessor();
                 // 线程获取到资源后会被置为头结点并释放掉，
-                // 上一个节点为头节点，说明是头结点所代表的线程（即被释放的那个线程）已经用完资源或者即将用完资源，
+                // 上一个节点为头节点，头结点所代表的线程已经用完资源或者即将用完资源，
                 // 当前节点为第二个节点，
                 // 会去尝试获取资源，若能够获取到资源则进入「if」内逻辑
                 if (p == head && tryAcquire(arg)) {
@@ -941,7 +942,7 @@ public abstract class AbstractQueuedSynchronizer
                     // 通过「setHead(node)」中的「node.prev = null;」以及「p.next=null」将之前的头节点从队列中彻底剥离，以便下次GC回收
                     p.next = null; // help GC
                     failed = false;
-                    // 在被中断标记后不立刻停止自旋 直到获取到资源后才停止自旋
+                    // 即使在被中断标记后不立刻停止自旋 直到获取到资源后才停止自旋
                     return interrupted;
                 }
                 if (shouldParkAfterFailedAcquire(p, node) &&
@@ -1489,6 +1490,7 @@ public abstract class AbstractQueuedSynchronizer
     /**
      * Version of getFirstQueuedThread called when fastpath fails
      */
+    // 获取队列中的第一个线程(不包含头节点，节点置为头节点后会清除节点中的thread属性值)
     private Thread fullGetFirstQueuedThread() {
         /*
          * The first node is normally head.next. Try to get its
@@ -1535,6 +1537,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if the given thread is on the queue
      * @throws NullPointerException if the thread is null
      */
+    // 判断给出的线程是否在队列中
     public final boolean isQueued(Thread thread) {
         if (thread == null)
             throw new NullPointerException();
@@ -1553,6 +1556,7 @@ public abstract class AbstractQueuedSynchronizer
      * is not the first queued thread.  Used only as a heuristic in
      * ReentrantReadWriteLock.
      */
+    // 判断队列中除头节点外第一个节点是否独占模式
     final boolean apparentlyFirstQueuedIsExclusive() {
         Node h, s;
         return (h = head) != null &&
