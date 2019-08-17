@@ -169,6 +169,7 @@ public class LockSupport {
      *        thread parking
      * @since 1.6
      */
+     // 线程进入waiting状态
     public static void park(Object blocker) {
         Thread t = Thread.currentThread();
         setBlocker(t, blocker);

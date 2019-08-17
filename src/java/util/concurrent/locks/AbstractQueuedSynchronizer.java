@@ -286,7 +286,7 @@ import sun.misc.Unsafe;
  * @since 1.5
  * @author Doug Lea
  *
- * 注释参考：
+ * 参考文章：
  * https://www.cnblogs.com/waterystone/p/4920797.html
  * https://segmentfault.com/a/1190000013160598
  */
@@ -431,7 +431,6 @@ public abstract class AbstractQueuedSynchronizer
          *               then retry the atomic acquire, and then,
          *               on failure, block.
          *   此节点的后继节点已经(或将很快)被阻塞(通过park),因此，当前节点在被释放或者取消时必须「unpark」它的后继节点。
-         *   为了避免竞争，// todo 巴拉巴拉，英文蹩脚技术还菜，翻译不出来了，待补充
          *
          *
          *   CANCELLED:  This node is cancelled due to timeout or interrupt.
@@ -654,6 +653,8 @@ public abstract class AbstractQueuedSynchronizer
      *
      * @param mode Node.EXCLUSIVE for exclusive, Node.SHARED for shared
      * @return the new node
+     *
+     * 添加到同步队列队尾，不同于{@link ConditionObject#addConditionWaiter()}
      */
     private Node addWaiter(Node mode) {
         Node node = new Node(Thread.currentThread(), mode);
@@ -705,6 +706,9 @@ public abstract class AbstractQueuedSynchronizer
          * just the next node.  But if cancelled or apparently null,
          * traverse backwards from tail to find the actual
          * non-cancelled successor.
+         *
+         * 将要被「unpark」的线程是其后继节点，正常来说该节点就是下一个后继节点。
+         * 但如果下一个后继节点为Null或者为取消状态，改为从尾部遍历去找到真正未被取消的后继节点
          */
         Node s = node.next;
         // node」的下一个节点为null或者为「取消/CANCELLED=1」状态，无效节点
@@ -907,7 +911,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if interrupted
      */
     private final boolean parkAndCheckInterrupt() {
-        /** 该方法会使线程进入「wait」状态，见{@link Thread.State.WAITING} */
+        /** 该方法会使线程进入「WAITING」状态，见{@link Thread.State.WAITING} */
         LockSupport.park(this);
         // 返回当前线程的中断状态
         return Thread.interrupted();
@@ -1351,13 +1355,14 @@ public abstract class AbstractQueuedSynchronizer
      * @return the value returned from {@link #tryRelease}
      */
     public final boolean release(int arg) {
-        // todo 如果「tryRelease」失败的话，那岂不是「release」也失败了  ？
+        // 如果「tryRelease」失败的话，那岂不是「release」也失败了  ？
         // 「lock」进行「unLock」的时候岂不是也失败了，例如「ReentrantLock」中「unLock」只是「sync.release(1)」
+        // 理论上「ReentrantLock」中的「tryRelease」不可能出错，因为其只是把state减去一个定值，在不出错的情况下，返回false只可能是因为重入锁，多次重入，尚未完全解锁
         if (tryRelease(arg)) {
             Node h = head;
-            // 线程队列初始化了则「h」不会为null，其「waitStatus」也不能为0，具体看「waitStatus」中对于0的含义
+            // 正常来说，线程队列初始化了则「h」不会为null，其「waitStatus」也不能为0，具体看「waitStatus」中对于0的含义
             if (h != null && h.waitStatus != 0)
-                // 唤醒后续节点
+                // 唤醒头节点后第一个有效节点
                 unparkSuccessor(h);
             return true;
         }
@@ -1735,8 +1740,23 @@ public abstract class AbstractQueuedSynchronizer
     /**
      * Returns true if a node, always one that was initially placed on
      * a condition queue, is now waiting to reacquire on sync queue.
+     *
+     * 如果一个节点(始终是最初放置在条件队列中的节点)现在正等待在同步队列上重新获取，则返回true。
      * @param node the node
      * @return true if is reacquiring
+     */
+    /**
+     * 判断是否在AQS的同步队列中
+     * {@link ConditionObject#await()}会将线程添加到条件队列后，之后会有一个循环
+     * while (!isOnSyncQueue(node)) {
+     *     LockSupport.park(this);
+     *     if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+     *     break;
+     * }
+     * 如果线程在条件队列的话「即当前线程返回false」说明还未被唤醒，则上述while(){}会一直循环下去，除非被中断
+     * 直到当前条件「condition」被唤醒{@link ConditionObject#signal()}{@link ConditionObject#doSignal(Node)}，
+     * 将条件队列第一个节点从条件队列移除，并通过{@link #transferForSignal(Node)}将条件队列中第一个节点「firstWaiter」添加到同步队列队尾，
+     * 至此，await()的线程跳出循环
      */
     final boolean isOnSyncQueue(Node node) {
         if (node.waitStatus == Node.CONDITION || node.prev == null)
@@ -1781,6 +1801,7 @@ public abstract class AbstractQueuedSynchronizer
         /*
          * If cannot change waitStatus, the node has been cancelled.
          */
+        // 「条件队列节点的默认waitStatus为CONDITION」，如果设置新的状态值失败，说明该节点已经不是CONDITION状态，已被取消
         if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
             return false;
 
@@ -1792,6 +1813,8 @@ public abstract class AbstractQueuedSynchronizer
          */
         Node p = enq(node);
         int ws = p.waitStatus;
+        // nuode的迁居节点为取消状态 或者 前驱节点设置为「SIGNAL」失败，则立刻唤醒线程
+        // todo 为啥？
         if (ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
             LockSupport.unpark(node.thread);
         return true;
@@ -1826,6 +1849,7 @@ public abstract class AbstractQueuedSynchronizer
      * @param node the condition node for this wait
      * @return previous sync state
      */
+    // 完全释放锁，有可能是可重入的，因此先「getState()」
     final int fullyRelease(Node node) {
         boolean failed = true;
         try {
@@ -1936,12 +1960,23 @@ public abstract class AbstractQueuedSynchronizer
      *
      * <p>This class is Serializable, but all fields are transient,
      * so deserialized conditions have no waiters.
+     *
+     * 条件队列和和AQS的CLH队列有密切的联系，当{@link #await()}的时候添加当前线程节点到条件队列末尾，然后阻塞住相应的线程，
+     * 当{@link #signal()}释放的时候，{@link #transferForSignal(Node)}会把ConditionObject的首个节点添加到AQS队列尾部，
+     * 然后把CLH队列倒数第二个节点(enq方法保证一定会有的)状态设置为SIGNAL，方便后续唤醒。
+     *
      */
     public class ConditionObject implements Condition, java.io.Serializable {
         private static final long serialVersionUID = 1173984872572414699L;
-        /** First node of condition queue. */
+        /** First node of condition queue.
+         *
+         * 当前条件队列的第一个节点
+         */
         private transient Node firstWaiter;
-        /** Last node of condition queue. */
+        /** Last node of condition queue.
+         *
+         * 当前条件队列的最后一个节点
+         */
         private transient Node lastWaiter;
 
         /**
@@ -1953,6 +1988,8 @@ public abstract class AbstractQueuedSynchronizer
 
         /**
          * Adds a new waiter to wait queue.
+         *
+         * 当前线程添加到条件队列队尾，不同于{@link #addWaiter(Node)}
          * @return its new wait node
          */
         private Node addConditionWaiter() {
@@ -1975,13 +2012,16 @@ public abstract class AbstractQueuedSynchronizer
          * Removes and transfers nodes until hit non-cancelled one or
          * null. Split out from signal in part to encourage compilers
          * to inline the case of no waiters.
-         * @param first (non-null) the first node on condition queue
+         * @param first (non-null) the first node on condition queue， 条件队列的第一个节点
          */
         private void doSignal(Node first) {
             do {
+                // 将「firstWaiter」指向「first.nextWaiter」以及「first.nextWaiter」置为「null」
+                // 这就将入参节点「first」从条件队列中摘了出来
                 if ( (firstWaiter = first.nextWaiter) == null)
                     lastWaiter = null;
                 first.nextWaiter = null;
+                // 将条件队列的第一个有效节点插入到AQS的同步队列的队尾
             } while (!transferForSignal(first) &&
                      (first = firstWaiter) != null);
         }
@@ -2043,6 +2083,10 @@ public abstract class AbstractQueuedSynchronizer
          *
          * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
          *         returns {@code false}
+         */
+        /**
+         * 这里主要工作就是，在条件队列中从队首开始，无效节点去除，寻第一个有效节点插入到AQS的同步队列队尾
+         * 实际应用时候，signal后会调用{@link Lock#unlock()}，进而会调用{@link #release(int)}，进而从同步队列唤醒线程
          */
         public final void signal() {
             if (!isHeldExclusively())
@@ -2142,9 +2186,15 @@ public abstract class AbstractQueuedSynchronizer
         public final void await() throws InterruptedException {
             if (Thread.interrupted())
                 throw new InterruptedException();
+            // 将当前线程构建为「waitStatus」为「CONDITION」的Node节点，并加入到当前条件队列的队尾，作为新的「lastWaiter」
+            // 返回包含当前线程的节点
             Node node = addConditionWaiter();
+            // 将锁完全释放，「完全释放：state为0，有可能是多次重入，state可能为>0的任何整数」
+            // 并唤醒头节点后第一个有效节点
             int savedState = fullyRelease(node);
             int interruptMode = 0;
+            // 如果当前线程还在条件队列，则一直循环，直至当前条件被「signal」，当前线程作为条件队列第一个有效节点被唤醒，则退出循环
+            // 当然，循环等待过程中被中断也会跳出循环
             while (!isOnSyncQueue(node)) {
                 LockSupport.park(this);
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
