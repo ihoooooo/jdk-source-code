@@ -578,7 +578,8 @@ public abstract class AbstractQueuedSynchronizer
      * The synchronization state.
      *
      * 同步状态
-     * TODO 补充其作用
+     * AQS的基础，通过CAS保证线程安全，通过volatile关键字保证可见性
+     * 线程获取锁则state+1，释放则state-1
      */
     private volatile int state;
 
@@ -1620,6 +1621,7 @@ public abstract class AbstractQueuedSynchronizer
      *         is at the head of the queue or the queue is empty
      * @since 1.7
      */
+    // 判断当前线程所在节点前面是否还有其他节点
     public final boolean hasQueuedPredecessors() {
         // The correctness of this depends on head being initialized
         // before tail and on head.next being accurate if the current
