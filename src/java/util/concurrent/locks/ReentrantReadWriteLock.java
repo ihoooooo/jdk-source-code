@@ -223,6 +223,9 @@ import java.util.Collection;
  * 支持非公平（默认）和公平的锁获取方式，吞吐量还是非公平优于公平。
  * 读锁和写锁都支持重入。
  * 锁降级：遵循获取写锁、获取读锁再释放写锁的次序，写锁能够降级成为读锁「写锁释放，持有的仅为读锁，则写锁降级为读锁」。
+ *
+ * 在读线程非常多，写线程很少的情况下，很容易导致写线程“饥饿”，
+ * 虽然使用“公平”策略可以一定程度上缓解这个问题，但是“公平”策略是以牺牲系统吞吐量为代价的
  */
 public class ReentrantReadWriteLock
         implements ReadWriteLock, java.io.Serializable {

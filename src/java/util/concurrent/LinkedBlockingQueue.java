@@ -142,12 +142,16 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     /**
      * Head of linked list.
      * Invariant: head.item == null
+     *
+     * 队列的头节点，不过头节点的「item」属性为Null
      */
     transient Node<E> head;
 
     /**
      * Tail of linked list.
      * Invariant: last.next == null
+     *
+     *  队列的尾节点，不过尾节点的「next」属性为Null
      */
     private transient Node<E> last;
 
