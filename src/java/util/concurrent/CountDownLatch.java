@@ -227,6 +227,16 @@ public class CountDownLatch {
      * @throws InterruptedException if the current thread is interrupted
      *         while waiting
      */
+    /**
+     * 线程调用此方法会等待，一直等到{@link CountDownLatch.Sync}构造器中传入的数字减为0
+     *
+     * 原因在于{@link AbstractQueuedSynchronizer#doAcquireSharedInterruptibly(int)}
+     * 中的{@link AbstractQueuedSynchronizer#tryAcquireShared(int)}，其实现见
+     * @see Sync#tryAcquireShared(int) ，可知，state不减为0则一直返回-1，
+     * {@link AbstractQueuedSynchronizer#doAcquireSharedInterruptibly(int)}一直自旋
+     *
+     * @throws InterruptedException
+     */
     public void await() throws InterruptedException {
         sync.acquireSharedInterruptibly(1);
     }

@@ -233,6 +233,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * The default initial capacity - MUST be a power of two.
      */
+    // 默认的初始容量，初始的外层数组的长度
     static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
 
     /**
@@ -244,6 +245,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * The load factor used when none specified in constructor.
+     *
+     * 构造函数中没有指定时使用的负载因子。
      */
     static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
@@ -255,6 +258,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * tree removal about conversion back to plain bins upon
      * shrinkage.
      */
+    // 当链表长度>=8的时候，转换为红黑树
     static final int TREEIFY_THRESHOLD = 8;
 
     /**
@@ -336,6 +340,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     static final int hash(Object key) {
         int h;
+        // ^ 异或运算：二进制位 不同则为1，相同则为0
         return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
     }
 
@@ -424,6 +429,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     // Additionally, if the table array has not been allocated, this
     // field holds the initial array capacity, or zero signifying
     // DEFAULT_INITIAL_CAPACITY.)
+
+    // 下次扩容的阈值，也可以说是可存储键值对最大值，集合容量 * 负载因子
     int threshold;
 
     /**
@@ -463,6 +470,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      *
      * @param  initialCapacity the initial capacity.
      * @throws IllegalArgumentException if the initial capacity is negative.
+     */
+    /**
+     * @param initialCapacity 初始容量
+     * 合理的初始容量 = （需要存储元素个数 / 负载因子）+ 1  {@link #putAll(Map)} 中也是这么算的
      */
     public HashMap(int initialCapacity) {
         this(initialCapacity, DEFAULT_LOAD_FACTOR);
@@ -625,25 +636,38 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
                    boolean evict) {
         Node<K,V>[] tab; Node<K,V> p; int n, i;
+        // table为空则初始化
         if ((tab = table) == null || (n = tab.length) == 0)
             n = (tab = resize()).length;
+        // 计算在数组中的index，且此数组位置上为null
         if ((p = tab[i = (n - 1) & hash]) == null)
             tab[i] = newNode(hash, key, value, null);
         else {
             Node<K,V> e; K k;
+            // 如果已经有相同的k存在
             if (p.hash == hash &&
-                ((k = p.key) == key || (key != null && key.equals(k))))
+                ((k = p.key) == key || (key != null && key.equals(k)))) {
                 e = p;
-            else if (p instanceof TreeNode)
+            }
+            else if (p instanceof TreeNode) {
+                // 如果为树
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+            }
             else {
+                // 如果为链表
                 for (int binCount = 0; ; ++binCount) {
+                    // 如果p是链表上尾节点
                     if ((e = p.next) == null) {
                         p.next = newNode(hash, key, value, null);
+                        // 如果binCount >= 7 ，则转化为红黑树
+                        // binCount为0，的时候e为p.next，为第二个节点，
+                        // 当binCount == 7，e为第9个节点，不过 e==null
+                        // 因此，链表长度达到8的时候就会转化为红黑树
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
                             treeifyBin(tab, hash);
                         break;
                     }
+                    //
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k))))
                         break;

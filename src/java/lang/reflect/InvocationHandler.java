@@ -47,6 +47,7 @@ public interface InvocationHandler {
      * associated with.
      *
      * @param   proxy the proxy instance that the method was invoked on
+     *                方法调用的代理实例
      *
      * @param   method the {@code Method} instance corresponding to
      * the interface method invoked on the proxy instance.  The declaring

@@ -212,6 +212,7 @@ public class CyclicBarrier {
             }
 
             int index = --count;
+            // 线程全部准备就绪
             if (index == 0) {  // tripped
                 boolean ranAction = false;
                 try {
@@ -219,6 +220,7 @@ public class CyclicBarrier {
                     if (command != null)
                         command.run();
                     ranAction = true;
+                    // trip.signalAll();  等待的线程被唤醒，开始竞争资源执行任务
                     nextGeneration();
                     return 0;
                 } finally {
