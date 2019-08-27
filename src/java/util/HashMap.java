@@ -662,7 +662,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         // 如果binCount >= 7 ，则转化为红黑树
                         // binCount为0，的时候e为p.next，为第二个节点，
                         // 当binCount == 7，e为第9个节点，不过 e==null
-                        // 因此，链表长度达到8的时候就会转化为红黑树
+                        // 因此，链表长度达到8「并且集合中元素个数达到64(见treeifyBin(Node<K,V>[] tab, int hash))」的时候就会转化为红黑树
+                        // 不过，感觉正常来讲如果一个位置碰撞已经达到了8个，集合容量肯定已经扩容很多次了，大部分情况元素数应该已经达到64了
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
                             treeifyBin(tab, hash);
                         break;
@@ -708,6 +709,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 threshold = Integer.MAX_VALUE;
                 return oldTab;
             }
+            // newCap = oldCap << 1 ，增大一倍
             else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
                      oldCap >= DEFAULT_INITIAL_CAPACITY)
                 newThr = oldThr << 1; // double threshold
