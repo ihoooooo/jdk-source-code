@@ -128,6 +128,20 @@ public abstract class AbstractExecutorService implements ExecutorService {
      * @throws RejectedExecutionException {@inheritDoc}
      * @throws NullPointerException       {@inheritDoc}
      */
+    /**
+     * 使用参数task通过{@link #newTaskFor(Callable)}方法构建{@link FutureTask}对象
+     * {@link RunnableFuture}继承了{@link Runnable}{@link Future}两个接口，{@link FutureTask}实现了{@link RunnableFuture}
+     *
+     * {@link FutureTask}中主要的方法为{@link FutureTask#run()}和{@link FutureTask#get()}
+     * {@link #submit(Callable)}方法返回{@link Future}调用其{@link Future#get()}方法时候，实际是{@link FutureTask#get()}
+     * 其实现内部大概逻辑如下：
+     * {@link FutureTask}主要属性：volatile修饰的state标识线程状态、Callable<V>类型的callable，即我们传入的实现Callable接口的类、还有就是用来接收线程任务执行结果的属性outcome
+     *
+     * state为初始化状态，{@link FutureTask#get()}方法根据状态一直自旋，直至状态变更或者其他情况可以跳出循环
+     * 线程执行{@link FutureTask#run()}方法，该方法主要内容为执行用户定义的Callable下的call方法、修改state状态、以及设置返回值outcome
+     * 进而{@link FutureTask#get()}内的自旋可以跳出循环并获取到返回值
+     *
+     */
     public <T> Future<T> submit(Callable<T> task) {
         if (task == null) throw new NullPointerException();
         RunnableFuture<T> ftask = newTaskFor(task);

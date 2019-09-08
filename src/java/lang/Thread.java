@@ -681,6 +681,8 @@ class Thread implements Runnable {
     /**
      * Causes this thread to begin execution; the Java Virtual Machine
      * calls the <code>run</code> method of this thread.
+     * 使该线程开始执行;Java虚拟机调用该线程的<code>run</code>方法。
+     *
      * <p>
      * The result is that two threads are running concurrently: the
      * current thread (which returns from the call to the
@@ -714,6 +716,7 @@ class Thread implements Runnable {
 
         boolean started = false;
         try {
+            // native方法
             start0();
             started = true;
         } finally {
