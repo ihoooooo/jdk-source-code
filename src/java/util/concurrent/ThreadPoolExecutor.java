@@ -1132,6 +1132,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             int wc = workerCountOf(c);
 
             // Are workers subject to culling?
+            // 允许核心线程超时 或者 有效线程数已经大于核心线程数，那么timed为true，则workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS)
+            // 反之，则take()，一直阻塞，等待新任务加到队列
             boolean timed = allowCoreThreadTimeOut || wc > corePoolSize;
 
             if ((wc > maximumPoolSize || (timed && timedOut))
@@ -1144,7 +1146,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             try {
                 Runnable r = timed ?
                     workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
-                    workQueue.take();
+                    workQueue.take();   // take()方法，取出队列中的一个节点，队列为空则阻塞等待，此处保证保持一定核心线程数，核心线程持续从队列中拉取任务
                 if (r != null)
                     return r;
                 timedOut = true;
@@ -1230,6 +1232,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                         afterExecute(task, thrown);
                     }
                 } finally {
+                    // 任务执行完成后task置为null，下个while循环进入getTask()内，在gettask()内从队列中取任务
                     task = null;
                     w.completedTasks++;
                     w.unlock();
