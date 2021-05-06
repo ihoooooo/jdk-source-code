@@ -235,6 +235,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             final Thread current = Thread.currentThread();
             int c = getState();
             if (c == 0) {
+                // c == 0 ，锁未被持有
                 // !hasQueuedPredecessors()为「true」说明当前线程是排在head节点后的第一个节点
                 if (!hasQueuedPredecessors() &&
                     compareAndSetState(0, acquires)) {
@@ -243,9 +244,11 @@ public class ReentrantLock implements Lock, java.io.Serializable {
                 }
             }
             else if (current == getExclusiveOwnerThread()) {
+                // c == 0，且 current == getExclusiveOwnerThread()，锁被当前线程持有
                 int nextc = c + acquires;
                 if (nextc < 0)
                     throw new Error("Maximum lock count exceeded");
+                // 设置锁标志的状态
                 setState(nextc);
                 return true;
             }
