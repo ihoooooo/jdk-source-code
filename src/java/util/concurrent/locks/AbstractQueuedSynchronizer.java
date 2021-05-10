@@ -1320,6 +1320,24 @@ public abstract class AbstractQueuedSynchronizer
      *
      *
      * {@link ReentrantReadWriteLock.WriteLock}实现{@link #tryAcquire(int)}主要流程：
+     * 获取锁标志位c 、 获取写锁（排它锁）标志位 w
+     * 1、锁标志位c 非0
+     * 1.1、 写锁标志位w为0，则当前锁被读线程持有，获取写锁失败，返回false
+     * 1.2、 写锁标志位w!=0，则当前锁被写线程持有。
+     * 1.2.1、 持有当前写锁的线程不等于当前线程，则写锁被其他线程占有，返回false
+     * 1.2.2、 持有当前写锁的线程等于当前线程，则写锁被当前线程占有
+     * 1.2.2.1 增加锁标志位c的值后 > {@link ReentrantReadWriteLock.MAX_COUNT}，超过锁最大计数，抛出异常
+     * 1.2.2.2 增加锁标志位c的值后 <= {@link ReentrantReadWriteLock.MAX_COUNT}，获取锁成功，返回true
+     *
+     * 2、锁标志位c == 0
+     * 判断获取写锁是否应该阻塞掉
+     * 『此处公平锁和非公平锁处理逻辑不同。』
+     * 『公平锁要判断当前线程节点前面是否还有非head节点外的其他节点，若有则应该阻塞，没有则排队轮到当前线程了则无需阻塞；』
+     * 『非公平锁返回为false，不用排队，均可尝试通过CAS获取锁』
+     * 2.1、 应该阻塞，返回false，尝试获取写锁失败
+     * 2.2、 不应该被阻塞，尝试CAS获取锁
+     * 2.2.1、 CAS获取锁失败返回false
+     * 2.2.2、 CAS获取锁成功，设置持有写锁的线程为当前线程，并返回true，获取锁成功
      *
      *
      */
