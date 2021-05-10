@@ -1290,6 +1290,39 @@ public abstract class AbstractQueuedSynchronizer
      *        {@link #tryAcquire} but is otherwise uninterpreted and
      *        can represent anything you like.
      */
+    /**
+     * {@link ReentrantLock} 的 {@link ReentrantLock.FairSync} 和 {@link ReentrantLock.NonfairSync}、
+     * {@link ReentrantReadWriteLock} 的 {@link ReentrantReadWriteLock.WriteLock} 都会调用此方法
+     * 三者都是排它锁
+     * 三者不同的逻辑在于各自实现 {@link #tryAcquire(int)}方法上。
+     *
+     *
+     * {@link ReentrantLock.FairSync}实现{@link #tryAcquire(int)}主要流程：
+     * 查询锁是否被持有
+     * 1、若锁未被持有
+     * 1.1、当前线程前面除了head节点外的其他节点，return false，获取锁失败。
+     * 1.2、当前线程前面除了head节点外没有其他节点，尝试CAS获取线程，成功则返回true，获取锁成功。反之，获取锁失败。
+     * 2、若锁已经被持有
+     * 2.1、若是当前线程持有，则变更锁标识state的值，即「锁重入」
+     * 2.2、若非当前线程持有，则获取锁失败。
+     *
+     *
+     * {@link ReentrantLock.NonfairSync}实现{@link #tryAcquire(int)}主要流程：
+     * 查询锁是否被持有
+     * 1、若锁未被持有
+     * 尝试CAS获取线程。    -----> 非公平锁和公平锁的区别就在此，公平锁是要根据队列一个一个来，非公平锁的话就直接获取
+     * 1.1、CAS获取锁成功，返回true
+     * 1.2、CAS获取锁失败，返回false
+     * 2、若锁已经被持有
+     * 2.1、若是当前线程持有，则变更锁标识state的值，即「锁重入」
+     * 2.2、若非当前线程持有，则获取锁失败。
+     *
+     *
+     *
+     * {@link ReentrantReadWriteLock.WriteLock}实现{@link #tryAcquire(int)}主要流程：
+     *
+     *
+     */
     public final void acquire(int arg) {
         if (!tryAcquire(arg) &&
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
