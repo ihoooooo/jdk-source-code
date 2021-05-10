@@ -237,6 +237,9 @@ public class Object {
     }
 
     /**
+     * 唤醒等待此对象监视器的一个线程。
+     * 如果有线程在等待这个对象，就会选择其中一个被唤醒。选择是任意的，由实现自行决定。
+     * 线程通过调用一个{@code wait}方法来等待对象的监视器。
      * Wakes up a single thread that is waiting on this object's
      * monitor. If any threads are waiting on this object, one of them
      * is chosen to be awakened. The choice is arbitrary and occurs at
@@ -250,6 +253,8 @@ public class Object {
      * awakened thread enjoys no reliable privilege or disadvantage in being
      * the next thread to lock this object.
      * <p>
+     *
+     * 该方法只能由该对象监视器的所有者的线程调用。一个线程通过以下三种方式之一成为对象的监视器的所有者:
      * This method should only be called by a thread that is the owner
      * of this object's monitor. A thread becomes the owner of the
      * object's monitor in one of three ways:
@@ -261,6 +266,8 @@ public class Object {
      *     synchronized static method of that class.
      * </ul>
      * <p>
+     *
+     * 一次只有一个线程可以持有对象的监视器。
      * Only one thread at a time can own an object's monitor.
      *
      * @throws  IllegalMonitorStateException  if the current thread is not
@@ -461,12 +468,18 @@ public class Object {
     }
 
     /**
+     * 使当前线程等待，直到另一个线程调用该对象的{@link java.lang.Object#notify()}方法或{@link java.lang.Object#notifyAll()}方法。
+     * 换句话说，这个方法的行为就像它只是执行调用{@code wait(0)}一样。
      * Causes the current thread to wait until another thread invokes the
      * {@link java.lang.Object#notify()} method or the
      * {@link java.lang.Object#notifyAll()} method for this object.
      * In other words, this method behaves exactly as if it simply
      * performs the call {@code wait(0)}.
      * <p>
+     *
+     * 当前线程必须拥有该对象的监视器。
+     * 线程释放该监视器的所有权并等待，直到另一个线程通过调用{@code notify}方法或{@code notifyAll}方法通知等待该对象监视器的线程唤醒。
+     * 线程然后等待，直到它可以重新获得监视器的所有权并继续执行。
      * The current thread must own this object's monitor. The thread
      * releases ownership of this monitor and waits until another thread
      * notifies threads waiting on this object's monitor to wake up
@@ -474,6 +487,7 @@ public class Object {
      * {@code notifyAll} method. The thread then waits until it can
      * re-obtain ownership of the monitor and resumes execution.
      * <p>
+     *
      * As in the one argument version, interrupts and spurious wakeups are
      * possible, and this method should always be used in a loop:
      * <pre>
@@ -483,6 +497,8 @@ public class Object {
      *         ... // Perform action appropriate to condition
      *     }
      * </pre>
+     *
+     * 该方法只能由该对象监视器的所有者的线程调用。请参阅{@code notify}方法来了解线程成为监视器所有者的方法。
      * This method should only be called by a thread that is the owner
      * of this object's monitor. See the {@code notify} method for a
      * description of the ways in which a thread can become the owner of

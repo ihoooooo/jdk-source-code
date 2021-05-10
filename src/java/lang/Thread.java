@@ -1739,6 +1739,9 @@ class Thread implements Runnable {
      * These states are virtual machine states which do not reflect
      * any operating system thread states.
      *
+     * 在给定的时间点，线程只能处于一种状态。
+     * 这些状态是虚拟机状态，其不反映任何操作系统线程状态。
+     *
      * @since   1.5
      * @see #getState
      */
