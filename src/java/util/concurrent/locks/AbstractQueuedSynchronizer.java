@@ -688,7 +688,8 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * Wakes up node's successor, if one exists.
-     * 唤醒节点的后继节点
+     * [səkˈsesə(r)] 继承者
+     * 唤醒 节点 的下一个节点
      *
      * @param node the node
      */
@@ -717,6 +718,7 @@ public abstract class AbstractQueuedSynchronizer
             s = null;
             // todo 此时为什么要从尾节点往前找？ 有人说是「因为锁已经释放，所以从尾节点开始找可以避免因为高并发下复杂的队列动态变化带来的逻辑判断」
             // todo 会不会造成节点的丢失？
+            //       👆，tail是被volatile修饰的
             for (Node t = tail; t != null && t != node; t = t.prev)
                 if (t.waitStatus <= 0)
                     s = t;
@@ -1168,6 +1170,7 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+     * 在独占模式下尝试去释放锁标识
      * Attempts to set the state to reflect a release in exclusive
      * mode.
      *
@@ -1407,9 +1410,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return the value returned from {@link #tryRelease}
      */
     public final boolean release(int arg) {
-        // 如果「tryRelease」失败的话，那岂不是「release」也失败了  ？
-        // 「lock」进行「unLock」的时候岂不是也失败了，例如「ReentrantLock」中「unLock」只是「sync.release(1)」
-        // 理论上「ReentrantLock」中的「tryRelease」不可能出错，因为其只是把state减去一个定值，在不出错的情况下，返回false只可能是因为重入锁，多次重入，尚未完全解锁
+        // tryRelease(arg) 返回true说明锁已经完全被释放掉
         if (tryRelease(arg)) {
             Node h = head;
             // 正常来说，线程队列初始化了则「h」不会为null，其「waitStatus」也不能为0，具体看「waitStatus」中对于0的含义
