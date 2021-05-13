@@ -460,7 +460,7 @@ public abstract class AbstractQueuedSynchronizer
          * signal. So, most code doesn't need to check for particular
          * values, just for sign.
          * 以数字取值是为了简化使用。
-         * 非负值表示节点不需要发出信号。
+         * 非负值表示节点不需要对其发出信号。
          * waitStatus>0表示取消状态，而waitStatus<0表示有效状态.
          * 因此，大多数情况下不需要检查特定的值，只需要检查正负号。
          *
