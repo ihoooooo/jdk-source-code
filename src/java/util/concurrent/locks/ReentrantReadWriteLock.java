@@ -780,6 +780,9 @@ public class ReentrantReadWriteLock
          * the current thread becomes disabled for thread scheduling
          * purposes and lies dormant until the read lock has been acquired.
          */
+        /**
+         * 读锁是共享锁，因此调用{@link AbstractQueuedSynchronizer#acquireShared(int)}
+         */
         public void lock() {
             sync.acquireShared(1);
         }
@@ -995,6 +998,9 @@ public class ReentrantReadWriteLock
          * thread becomes disabled for thread scheduling purposes and
          * lies dormant until the write lock has been acquired, at which
          * time the write lock hold count is set to one.
+         */
+        /**
+         * 读锁是排他锁，因此调用{@link AbstractQueuedSynchronizer#acquire(int)}
          */
         public void lock() {
             sync.acquire(1);
