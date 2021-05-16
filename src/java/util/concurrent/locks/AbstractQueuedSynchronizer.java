@@ -1043,7 +1043,8 @@ public abstract class AbstractQueuedSynchronizer
             boolean interrupted = false;
             for (;;) {
                 final Node p = node.predecessor();
-                // 前驱节点为头节点才能继续尝试
+                // 当前节点的前一个节点为头节点才能继续尝试。
+                // 因为线程获取到锁后会将自己设为头节点，如果当前节点的前一个节点为头节点，那么尝试获取到锁的概率很大
                 if (p == head) {
                     int r = tryAcquireShared(arg);
                     // 成功获取到资源
@@ -1297,7 +1298,7 @@ public abstract class AbstractQueuedSynchronizer
      * {@link ReentrantLock} 的 {@link ReentrantLock.FairSync} 和 {@link ReentrantLock.NonfairSync}、
      * {@link ReentrantReadWriteLock} 的 {@link ReentrantReadWriteLock.WriteLock} 都会调用此方法
      * 三者都是排它锁
-     * 三者不同的逻辑在于各自实现 {@link #tryAcquire(int)}方法上。
+     * 三者不同的逻辑在于各自实现 {@link #tryAcquire(int)}方法上，来体现各自的特性。
      *
      *
      * {@link ReentrantLock.FairSync}实现{@link #tryAcquire(int)}主要流程：
@@ -1410,7 +1411,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return the value returned from {@link #tryRelease}
      */
     public final boolean release(int arg) {
-        // tryRelease(arg) 返回true说明锁已经完全被释放掉
+        // tryRelease(arg) 返回true说明锁已经完全被释放掉 (state == 0)
         if (tryRelease(arg)) {
             Node h = head;
             // 正常来说，线程队列初始化了则「h」不会为null，其「waitStatus」也不能为0，具体看「waitStatus」中对于0的含义
@@ -1431,6 +1432,8 @@ public abstract class AbstractQueuedSynchronizer
      *
      * 以共享模式获取，忽略中断。首先调用至少一次{@link # tryacquiremred}，成功后返回。
      * 否则，线程将排队，可能反复阻塞和解除阻塞，调用{@link # tryacquiremred}直到成功。
+     *
+     * tryAcquireShared(arg)尝试是否能获取到资源，能则直接返回，不能则会进入队列按入队顺序依次唤醒尝试获取
      *
      * @param arg the acquire argument.  This value is conveyed to
      *        {@link #tryAcquireShared} but is otherwise uninterpreted
@@ -1618,7 +1621,7 @@ public abstract class AbstractQueuedSynchronizer
      * is not the first queued thread.  Used only as a heuristic in
      * ReentrantReadWriteLock.
      */
-    // 判断队列中除头节点外第一个节点是否独占模式
+    // 判断队列中头节点后第一个节点是否独占模式
     final boolean apparentlyFirstQueuedIsExclusive() {
         Node h, s;
         return (h = head) != null &&
@@ -1673,7 +1676,7 @@ public abstract class AbstractQueuedSynchronizer
      *         is at the head of the queue or the queue is empty
      * @since 1.7
      */
-    // 判断当前线程所在节点前面是否还有其他节点
+    // 判断当前线程所在节点前面是否还有除头节点外的其他节点
     public final boolean hasQueuedPredecessors() {
         // The correctness of this depends on head being initialized
         // before tail and on head.next being accurate if the current

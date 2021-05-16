@@ -516,6 +516,7 @@ public class ReentrantReadWriteLock
             Thread current = Thread.currentThread();
             int c = getState();
             // 写锁已被占有 且 占有写锁的不是当前线程， 则当前线程获取读锁失败，返回 -1
+            // 注意：写锁与任何其他线程互斥。但是此处表明，如果当前线程已经持有写锁，那么当前线程还是可以尝试去持有读锁的。
             if (exclusiveCount(c) != 0 &&
                 getExclusiveOwnerThread() != current)
                 return -1;
