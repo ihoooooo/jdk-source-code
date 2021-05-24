@@ -45,6 +45,8 @@ import java.security.AccessControlException;
 import sun.security.util.SecurityConstants;
 
 /**
+ * {@link Executor}、{@link ExecutorService}、{@link ScheduledExecutorService}、{@link ThreadFactory}和{@link Callable}类的工厂方法和通用方法
+ *
  * Factory and utility methods for {@link Executor}, {@link
  * ExecutorService}, {@link ScheduledExecutorService}, {@link
  * ThreadFactory}, and {@link Callable} classes defined in this
