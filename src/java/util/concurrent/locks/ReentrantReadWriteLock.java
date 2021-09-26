@@ -443,7 +443,7 @@ public class ReentrantReadWriteLock
             if (c != 0) {
                 // (Note: if c != 0 and w == 0 then shared count != 0)
                 // c != 0 说明锁已经被占有，
-                // w == 0 说明写锁为0，读锁不为0，则锁已经被读线程占有
+                // w == 0 说明写锁为0，那么读锁一定不为0，则锁已经被读线程占有
                 // w != 0 && current != getExclusiveOwnerThread() 说明占有写锁的不是当前线程，则获取写锁失败
                 if (w == 0 || current != getExclusiveOwnerThread())
                     return false;
