@@ -1027,12 +1027,6 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     mainLock.unlock();
                 }
                 if (workerAdded) {
-                    /**
-                     * 启动线程，会调用{@link FutureTask#run()}，
-                     * 该方法又进一步调用 call()方法，
-                     * 调用成功后通过{@link FutureTask#set(java.lang.Object)}将结果写入{@link FutureTask#outcome}
-                     * 这样 {@link FutureTask#get()} 就能获取到结果了
-                     */
                     t.start();
                     workerStarted = true;
                 }
@@ -1453,6 +1447,12 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             // 添加工作线程失败，则获取最新的「ctl」值
             c = ctl.get();
         }
+
+        /**
+         * 程序至此说明：
+         * 1、工作线程数量大于等于核心线程数量
+         * 2、调用addWorker(command, true)方法失败
+         */
 
         /** 线程已经不是RUNNING状态 或者 是RUNNING但是workerCount >= corePoolSize */
 
