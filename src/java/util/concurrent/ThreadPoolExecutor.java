@@ -1441,7 +1441,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         int c = ctl.get();
         /** 线程数量小于核心线程数 */
         if (workerCountOf(c) < corePoolSize) {
-            // 添加工作线程
+            // 添加任务到核心线程
             if (addWorker(command, true))
                 return;
             // 添加工作线程失败，则获取最新的「ctl」值
