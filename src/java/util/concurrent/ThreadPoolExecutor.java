@@ -1027,6 +1027,12 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     mainLock.unlock();
                 }
                 if (workerAdded) {
+                    /**
+                     * 启动线程，会调用{@link FutureTask#run()}，
+                     * 该方法又进一步调用 call()方法，
+                     * 调用成功后通过{@link FutureTask#set(java.lang.Object)}将结果写入{@link FutureTask#outcome}
+                     * 这样 {@link FutureTask#get()} 就能获取到结果了
+                     */
                     t.start();
                     workerStarted = true;
                 }
