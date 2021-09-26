@@ -450,6 +450,7 @@ public class ReentrantReadWriteLock
                 if (w + exclusiveCount(acquires) > MAX_COUNT)
                     throw new Error("Maximum lock count exceeded");
                 // Reentrant acquire
+                // 这里说明一定是写锁，且持有写锁的是当前线程，故可以直接赋值修改state
                 setState(c + acquires);
                 return true;
             }
