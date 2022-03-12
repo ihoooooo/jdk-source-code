@@ -340,7 +340,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *
      * ctl,控制线程池的主要状态，是一个atomic的integer，包含两部分
      * workerCount，表明有效的线程数
-     * runState，表明线程的状态，RUNNING、SHUTDOWN等等
+     * runState，表明线程池的状态，RUNNING、SHUTDOWN等等
      *
      * In order to pack them into one int, we limit workerCount to
      * (2^29)-1 (about 500 million) threads rather than (2^31)-1 (2
@@ -521,6 +521,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Set containing all worker threads in pool. Accessed only when
      * holding mainLock.
+     *
+     * 所有工作中的线程
      */
     private final HashSet<Worker> workers = new HashSet<Worker>();
 
@@ -1079,6 +1081,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         mainLock.lock();
         try {
             completedTaskCount += w.completedTasks;
+            // 从线程集合中移除
             workers.remove(w);
         } finally {
             mainLock.unlock();
@@ -1240,6 +1243,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             }
             completedAbruptly = false;
         } finally {
+            // 无任务可执行，跳出循环，退出线程，从线程集合中移除当前线程（根据当前线程数、核心线程数、核心线程超时时间、核心线程是否可被回收等情况）
             processWorkerExit(w, completedAbruptly);
         }
     }
