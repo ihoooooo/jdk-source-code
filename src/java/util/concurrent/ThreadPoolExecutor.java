@@ -1452,6 +1452,12 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             c = ctl.get();
         }
 
+        /**
+         * 程序至此说明：
+         * 1、工作线程数量大于等于核心线程数量
+         * 2、调用addWorker(command, true)方法失败
+         */
+
         /** 线程已经不是RUNNING状态 或者 是RUNNING但是workerCount >= corePoolSize */
 
         // 线程池是running状态 并且 任务队列未满，成功将任务添加到队列
