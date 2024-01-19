@@ -1677,6 +1677,8 @@ public abstract class AbstractQueuedSynchronizer
      * @since 1.7
      */
     // 判断当前线程所在节点前面是否还有除头节点外的其他节点
+    // 1、当前节点就是 head 节点
+    // 2、当前节点前面只有头节点
     public final boolean hasQueuedPredecessors() {
         // The correctness of this depends on head being initialized
         // before tail and on head.next being accurate if the current
@@ -1684,11 +1686,13 @@ public abstract class AbstractQueuedSynchronizer
         Node t = tail; // Read fields in reverse initialization order
         Node h = head;
         Node s;
+        // 队列至少有两个节点 && 当前节点没有在 head 节点后
+        // h == t ，返回 false， 则 head节点 == tail节点，只有一个节点，正常来说就是当前节点
+        // (s = h.next) != null && s.thread == Thread.currentThread(), 当前节点排在 head 节点之后，返回 false
         return h != t &&
             ((s = h.next) == null || s.thread != Thread.currentThread());
-        // 该方法为判断当前线程所在节点前面是否还有其他节点，
-        // 第二个判断条件，((s = h.next) != null && s.thread == Thread.currentThread())，
-        // 没有任何线程等待获取的时间超过当前线程，即当前线程就是除了head节点外最靠前的节点
+        // 第二个判断条件取反为：((s = h.next) != null && s.thread == Thread.currentThread())
+        // ((s = h.next) != null && s.thread == Thread.currentThread()) 为 true 则说明当前节点排在head节点之后，则((s = h.next) == null || s.thread != Thread.currentThread()) 为 false
         // a&&b 的取反为 !a || !b
     }
 
