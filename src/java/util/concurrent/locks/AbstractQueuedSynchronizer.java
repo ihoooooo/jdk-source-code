@@ -1346,6 +1346,10 @@ public abstract class AbstractQueuedSynchronizer
      *
      */
     public final void acquire(int arg) {
+        // tryAcquire(arg)尝试获取锁
+        // 如果 tryAcquire(arg) 尝试获取锁失败，则进入 acquireQueued(addWaiter(Node.EXCLUSIVE), arg)
+        // acquireQueued(addWaiter(Node.EXCLUSIVE), arg) 里面1、循环获取锁 2、监控中断状态
+        // 1、如果获取的锁则成功退出 2、如果被中断则 interrupted(被中断的) 为true，也退出，然后 selfInterrupt() 设置中断
         if (!tryAcquire(arg) &&
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
             selfInterrupt();
