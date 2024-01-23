@@ -928,7 +928,7 @@ public abstract class AbstractQueuedSynchronizer
     private final boolean parkAndCheckInterrupt() {
         /** 该方法会使线程进入「WAITING」状态，见{@link Thread.State.WAITING} */
         LockSupport.park(this);
-        // 返回当前线程的中断状态
+        // 返回当前线程的中断状态，并且会清除掉线程的中断状态
         return Thread.interrupted();
     }
 
