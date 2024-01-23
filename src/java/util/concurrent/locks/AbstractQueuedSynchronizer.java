@@ -753,8 +753,10 @@ public abstract class AbstractQueuedSynchronizer
             Node h = head;
             if (h != null && h != tail) {
                 int ws = h.waitStatus;
+                // 一个节点阻塞前它前面的节点的 waiteStatus 必须为 SIGNAL ，如果在做唤醒操作这个值就会变，做这个判断主要是确保当前队列没有其他线程在做唤醒操作
                 if (ws == Node.SIGNAL) {
                     // 将头节点状态改为0，表示已通知，若修改失败则再次循环
+                    // 尝试将头节点 waiteStatus 值设置为 0，代表这个 FIFO 队列正在做唤醒操作，注意与独占锁不一样，这里要确保这个值是设置成功的
                     if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
                         continue;            // loop to recheck cases
                     // 唤醒后继节点
