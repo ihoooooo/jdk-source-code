@@ -405,6 +405,7 @@ public abstract class AbstractQueuedSynchronizer
         /** waitStatus value to indicate successor's thread needs unparking
          * 节点状态位SIGNAL标识，其后继节点需要被唤醒，
          * 当前节点释放锁的时候将会主动唤醒(unPark，可见{@link #release(int)}中调用的{@link #unparkSuccessor(Node)})后继节点
+         * 同理，每个节点阻塞的时候，必须设置其前置节点为 SIGNAL
          */
         static final int SIGNAL    = -1;
         /**
@@ -871,6 +872,9 @@ public abstract class AbstractQueuedSynchronizer
      * @param pred node's predecessor holding status
      * @param node the node
      * @return {@code true} if thread should block
+     *
+     * 检查当前未成功获取锁的线程（@param node） ，如果其前置节点是 {@link Node.SIGNAL} 状态 则当前线程（@param node）安心的 park，因为状态为 SIGNAL 的节点释放锁的时候会主动唤醒后置节点
+     * 如果当前线程前面节点状态 > 0（{@link Node.CANCELLED），则一直往前追溯，把当前节点挂在第一个状态非取消的节点后面
      */
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         int ws = pred.waitStatus;
@@ -960,6 +964,7 @@ public abstract class AbstractQueuedSynchronizer
                     // 即使在被中断标记后不立刻停止自旋 直到获取到资源后才停止自旋
                     return interrupted;
                 }
+                // shouldParkAfterFailedAcquire(p, node) 为 true ，则当前节点的前置节点状态为 SIGNAL，那么就把当前节点 park
                 if (shouldParkAfterFailedAcquire(p, node) &&
                     parkAndCheckInterrupt())
                     interrupted = true;
