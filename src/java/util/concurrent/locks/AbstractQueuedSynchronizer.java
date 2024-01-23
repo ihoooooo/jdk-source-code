@@ -412,6 +412,8 @@ public abstract class AbstractQueuedSynchronizer
          * waitStatus value to indicate thread is waiting on condition
          * 标识线程处在某条件「condition」下的等待状态，或者说在某「condition」的等待队列中
          * 当其他线程调用了Condition的signal()方法后，CONDITION状态的结点将从等待队列转移到同步队列中，等待获取同步锁。
+         *
+         * 代表条件等待状态，条件等待队列里每一个节点都是这个状态，它的节点被移到同步队列之后状态会修改为 0。
          */
         static final int CONDITION = -2;
         /**
