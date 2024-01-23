@@ -732,6 +732,10 @@ public abstract class AbstractQueuedSynchronizer
      * propagation. (Note: For exclusive mode, release just amounts
      * to calling unparkSuccessor of head if it needs signal.)
      */
+    /**
+     * 唤醒共享模式节点，共享模式，即读锁，相关的节点都应该唤醒
+     * 如果是写锁的话，那就只唤醒 head 节点后的线程即可
+     */
     private void doReleaseShared() {
         /*
          * Ensure that a release propagates, even if there are other
