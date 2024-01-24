@@ -643,8 +643,11 @@ public abstract class AbstractQueuedSynchronizer
                 if (compareAndSetHead(new Node()))
                     tail = head;
             } else {
+                // 1、先把要入队节点的前置节点置为 旧tail 节点
                 node.prev = t;
+                // 2、CAS 将要入队节点置为 新tail 节点
                 if (compareAndSetTail(t, node)) {
+                    // 3、旧tail 的后继节点置为 要入队的节点（新tail节点）
                     t.next = node;
                     return t;
                 }
@@ -717,11 +720,14 @@ public abstract class AbstractQueuedSynchronizer
          */
         Node s = node.next;
         // node」的下一个节点为null或者为「取消/CANCELLED=1」状态，无效节点
+        // 如果后面这个节点状态为取消，那么就找到一个位置最靠前的非取消状态的节点
         if (s == null || s.waitStatus > 0) {
             s = null;
-            // todo 此时为什么要从尾节点往前找？ 有人说是「因为锁已经释放，所以从尾节点开始找可以避免因为高并发下复杂的队列动态变化带来的逻辑判断」
-            // todo 会不会造成节点的丢失？
-            //       👆，tail是被volatile修饰的
+            /**
+             * 为什么从 tail 节点往前而不是从当前节点往后，是为了避免遗漏
+             * 具体参见 {@link #enq(Node)} 内关键的入队 1、2、3 步骤，不是原子的操作
+             * 由3步可见，从 tail 往前队列是不会断的，从前往后可能第 2 步执行了，还没到第 3 步的时候就无法找到后继节点了
+             */
             for (Node t = tail; t != null && t != node; t = t.prev)
                 if (t.waitStatus <= 0)
                     s = t;
@@ -1431,9 +1437,9 @@ public abstract class AbstractQueuedSynchronizer
         // tryRelease(arg) 返回true说明锁已经完全被释放掉 (state == 0)
         if (tryRelease(arg)) {
             Node h = head;
-            // 正常来说，线程队列初始化了则「h」不会为null，其「waitStatus」也不能为0，具体看「waitStatus」中对于0的含义
+            // 在唤醒头节点的后继之前会做一个将头节点状态置为 0 的操作（虽然这个操作不一定成功）。如果头节点的状态为 0 了，说明正在释放后继节点，这时候也就不再需要释放了，直接返回 true
             if (h != null && h.waitStatus != 0)
-                // 唤醒头节点后第一个有效节点
+                // 唤醒后继节点
                 unparkSuccessor(h);
             return true;
         }
