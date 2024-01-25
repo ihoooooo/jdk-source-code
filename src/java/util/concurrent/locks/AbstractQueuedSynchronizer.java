@@ -1843,8 +1843,11 @@ public abstract class AbstractQueuedSynchronizer
      * 至此，await()的线程跳出循环
      */
     final boolean isOnSyncQueue(Node node) {
+        // node.waitStatus == Node.CONDITION，则必然在等待队列
+        // 代码走到node.prev == null，则node.waitStatus != Node.CONDITION，说明 node 为同步队列中的head节点，因为同步队列中每个节点都有prev，只有head是个空节点没有prev
         if (node.waitStatus == Node.CONDITION || node.prev == null)
             return false;
+        // next是同步队列里面节点的属性，node.next != null 则必然是在同步队列
         if (node.next != null) // If has successor, it must be on queue
             return true;
         /*
