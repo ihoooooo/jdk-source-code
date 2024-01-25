@@ -2277,13 +2277,16 @@ public abstract class AbstractQueuedSynchronizer
             // 返回包含当前线程的节点
             Node node = addConditionWaiter();
             // 将锁完全释放，「完全释放：state为0，有可能是多次重入，state可能为>0的任何整数」
+            // 为什么要全部释放锁，因为已经await()了，就要让出线程，其他线程才能获取到锁，然后调用signal()唤醒线程，形成闭环
             // 并唤醒头节点后第一个有效节点
             int savedState = fullyRelease(node);
             int interruptMode = 0;
             // 如果当前线程还在条件队列，则一直循环，直至当前条件被「signal」，当前线程作为条件队列第一个有效节点被唤醒，则退出循环
             // 当然，循环等待过程中被中断也会跳出循环
             while (!isOnSyncQueue(node)) {
+                // 没有在同步队列，那就是在等待队列，则阻塞当前线程
                 LockSupport.park(this);
+                // 在等待队列等待的过程中，可以被中断，即可以响应中断
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
             }
